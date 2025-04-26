@@ -1,14 +1,12 @@
 import { Router } from "express";
+import { getAllUsers } from "../controllers/user.controller.js";
+import { getUser } from "../controllers/user.controller.js";
+import { authorize } from "../middlewares/auth.middlewares.js";
 
 const Userrouter = Router();
 
-Userrouter.get("/", (req, res) => {
-    res.send( { title: "Get all users" } );
-});
-
-Userrouter.get("/:id", (req, res) => {
-    res.send( { title: "User profile page" } );
-});
+Userrouter.get("/", authorize ,getAllUsers);
+Userrouter.get("/:id", authorize ,getUser);
 
 Userrouter.post("/", (req, res) => {
     res.send( { title: "Create User" } );

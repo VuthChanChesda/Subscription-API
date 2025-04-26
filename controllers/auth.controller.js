@@ -22,8 +22,9 @@ export const signUp = async (req, res ,next) => {
         //hash password
         const salt = bcrypt.genSaltSync(10);
         const hashedPassword = await bcrypt.hash(password, salt);
-        const newUser = await User.create([{name, email, password: hashedPassword}] , {session});
+        const newUser = await User.create([{name, email, password: hashedPassword}] , {session}); //we add session to the create method to make it atomic mean if it fails it will rollback the transaction
         const token = jwt.sign({userId: newUser[0]._id}, JWT_SECRET , {expiresIn: JWT_EXPIRES_IN}); //attach user id to token
+        
         await session.commitTransaction();
         session.endSession();
         res.status(201).json({

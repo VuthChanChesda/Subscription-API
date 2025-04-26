@@ -21,8 +21,8 @@ const errorMiddleware = (err, req, res, next) => {
 
         //Mongoose validation error
         if(err.name === "ValidationError"){
-            const message = Object.values(err.errors).map(val => val.message);
-            error = new Error(message.join(", "));
+            const message = Object.values(err.errors).map(val => val.message); //map over err oject cus we might have multiple validation errors then show message for each
+            error = new Error(message.join(", ")); //join the array into a string
             error.statusCode = 400;
         }
 
