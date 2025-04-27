@@ -6,6 +6,12 @@ const errorMiddleware = (err, req, res, next) => {
         error.message = err.message;
         console.error(err);
 
+        // Handle unmatched routes (404 errors)
+        if (!err.statusCode && !err.message) {
+            error = new Error("API URL not found");
+            error.statusCode = 404;
+        }             
+
         //Mongoose bad ObjectId
         if(err.name === "CastError"){
             const message = `Resource not found. Invalid: ${err.path}`;
