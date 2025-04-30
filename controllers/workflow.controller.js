@@ -3,13 +3,11 @@ import Subscription from '../models/subscription.model.js';
 const require = createRequire(import.meta.url);
 const {serve} = require('@upstash/workflow/express');
 import dayjs from 'dayjs';
+import { sendReminderEmail } from '../utils/send-email.js';
 
 const REMINDER = [7,5,3,2,1];
 
-
 export const sendReminder = serve(async (context) => {
-
-
 
    const {subscriptionId} = context.requestPayload;
    const subscription = await fetchSubscription(context, subscriptionId);
@@ -24,7 +22,6 @@ export const sendReminder = serve(async (context) => {
 
     for(let daybefore of REMINDER) {
 
-
         //check like this renewalDate - daybefore like 7 days before, 5 days before, etc
         //like is the renewal date is day 20 then the reminder date will be day 13, day 15, day 17, day 18, day 19
         //20 - 7 , 20 -5 and so on
@@ -35,9 +32,9 @@ export const sendReminder = serve(async (context) => {
         if(reminderDate.isAfter(dayjs())) { 
             console.log(`Sleeping until ${reminderDate}`);
 
-            await sleepUntilReminder(context, `Send reminder for ${daybefore} day before` , reminderDate);
+            await sleepUntilReminder(context, `${daybefore} days before reminder` , reminderDate);
         }
-        await tiggerReminder(context, `Send reminder for ${daybefore} day before`);
+        await tiggerReminder(context, `${daybefore} days before reminder` , subscription);
 
     }
      
@@ -56,9 +53,14 @@ const sleepUntilReminder = async (context, label ,date) => {
     await context.sleepUntil(label ,date.toDate());
 }
 
-const tiggerReminder = async (context, label) => {
-    return await context.run(label, () => {
-        console.log(`Triggering reminder for ${label}`);
+const tiggerReminder = async (context, label , subscription) => {
+    return await context.run(label, async () => {
+
         //send email or notification to user
+        await sendReminderEmail({
+            to: subscription.user.email,
+            type: label,
+            subscription
+        });
     });
 }
