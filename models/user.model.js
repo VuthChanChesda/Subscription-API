@@ -21,6 +21,11 @@ const userSchema = new mongoose.Schema({
             required:[true , "Password is required"] ,
             minLength: [6, "Password must be at least 6 characters long"],
         },
+    role:{
+            type: String,
+            enum: ["user", "admin"],
+            default: "user",
+        },
 
 
 } , {timestamps: true}); //timestamps: true will automatically add createdAt and updatedAt fields

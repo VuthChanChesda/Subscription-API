@@ -2,7 +2,9 @@ import jwt from 'jsonwebtoken';
 import { JWT_SECRET } from '../config/env.js';
 import User from '../models/user.model.js';
 
-export const authorize = async (req, res, next) => {
+export const authorize = (roles = []) => {
+
+   return async (req, res, next) => { 
     try{
         let token;
         if(req.headers.authorization && req.headers.authorization.startsWith("Bearer")){
@@ -22,11 +24,20 @@ export const authorize = async (req, res, next) => {
                 success: false
             });
         }
+        // Role check only if roles array is not empty
+        if (roles.length && !roles.includes(user.role)) {
+            return res.status(403).json({
+                message: "Forbidden: You do not have permission",
+                success: false,
+            });
+        }       
         req.user = user;
         next();
     }
     catch(err){
         next(err);
+    }
+
     }
 
 }

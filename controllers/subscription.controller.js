@@ -70,3 +70,47 @@ export const getUserSubscriptions = async (req, res, next) => {
         next(error);
     }
 }
+
+export const getAllSubscriptions = async (req, res, next) => {
+    try {
+        const subscriptions = await Subscription.find()
+            .populate("user", "name email") // Populate user details
+        res.status(200).json({
+            message: "All subscriptions fetched successfully",
+            success: true,
+            data: subscriptions
+        });
+    } catch (error) {
+        next(error);
+    }
+}
+
+export const getSubscriptionDetails = async (req, res, next) => {
+    try {
+
+        const subscription = await Subscription.findById(req.params.id)
+            .populate("user", "name email") // Populate user details
+
+        if (!subscription) {
+            return res.status(404).json({
+                message: "Subscription not found",
+                success: false,
+            });
+        }     
+        // Check if the subscription belongs to the logged-in user
+        if (subscription.user._id.toString() !== req.user._id.toString()) {
+            return res.status(403).json({
+                message: "You are not authorized to view this subscription",
+                success: false,
+            });
+        }
+
+        res.status(200).json({
+            message: "Subscription details fetched successfully",
+            success: true,
+            data: subscription
+        });
+    } catch (error) {
+        next(error);
+    }
+}
