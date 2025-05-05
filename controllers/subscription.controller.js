@@ -31,6 +31,12 @@ export const createSubscription = async (req, res, next) => {
             retries: 0,
         })
 
+        //Update the subscription with the workflowRunId
+        subscription.workflowRunId = workflowRunId;
+        await subscription.save();
+
+
+
         res.status(201).json({
             message: "Subscription created successfully",
             success: true ,
@@ -109,6 +115,97 @@ export const getSubscriptionDetails = async (req, res, next) => {
             message: "Subscription details fetched successfully",
             success: true,
             data: subscription
+        });
+    } catch (error) {
+        next(error);
+    }
+}
+
+export const updateSubscription = async (req, res, next) => {
+    try {
+        const { error } = subscriptionValidationSchema.validate(req.body, { abortEarly: false });
+        if (error) {
+            return res.status(400).json({
+                message: "Validation error",
+                success: false,
+                errors: error.details.map((err) => err.message), // Return all validation errors
+            });
+        }
+        // Find the subscription and ensure it belongs to the logged-in user
+        const subscription = await Subscription.findOne({
+            _id: req.params.id,
+            user: req.user._id, // Ensure the subscription belongs to the logged-in user
+        }).populate("user", "name email");
+
+        if (!subscription) {
+            return res.status(404).json({
+                message: "Subscription not found",
+                success: false,
+            });
+        }
+
+        // Update the subscription
+        const updatedSubscription = await Subscription.findByIdAndUpdate(
+            req.params.id,
+            req.body,
+            { new: true, runValidators: true } // Return the updated document and run validators
+        );
+
+        // Trigger the workflow again if needed
+        if (req.body.renewalDate || req.body.frequency || req.body.startDate) {
+            const { workflowRunId } = await workflowClient.trigger({
+                url: `${SERVER_URL}/api/v1/workflows/subscription/reminder`,
+                body: {
+                    subscriptionId: updatedSubscription._id,
+                },
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                retries: 0,
+            });
+            console.log("Workflow triggered with ID:", workflowRunId);
+        }
+
+        // Return the updated subscription
+        res.status(200).json({
+            message: "Subscription updated successfully",
+            success: true,
+            data: updatedSubscription
+        });
+
+    }
+    catch (error) {
+        next(error);
+    }
+}
+
+export const DeleteSubscription = async (req, res, next) => {
+    try {
+        // Find the subscription and ensure it belongs to the logged-in user
+        const subscription = await Subscription.findOne({
+            _id: req.params.id,
+            user: req.user._id, // Ensure the subscription belongs to the logged-in user
+        }).populate("user", "name email");
+        if (!subscription) {
+            return res.status(404).json({
+                message: "Subscription not found",
+                success: false,
+            });
+        }
+        // Cancel the workflow if it exists
+        const workflowRunId = subscription.workflowRunId;
+        console.log("WorkflowRunId to cancel:", workflowRunId);
+
+        if (workflowRunId) {
+            await workflowClient.cancel({ids: workflowRunId});
+            console.log("Workflow cancelled with ID:", workflowRunId);
+        }
+
+        const DeleteSubscription = await Subscription.findByIdAndDelete(req.params.id);
+
+        res.status(200).json({
+            message: "Subscription deleted successfully",
+            success: true,
         });
     } catch (error) {
         next(error);

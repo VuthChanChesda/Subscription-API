@@ -63,8 +63,10 @@ const subscriptionSchema = new mongoose.Schema({
             required: [true, "User is required"],
             index: true,
         },
-
-
+    workflowRunId: {
+        type: String,
+        default: null,
+    },
 
 }, {timestamps: true}); //timestamps: true will automatically add createdAt and updatedAt fields
 
