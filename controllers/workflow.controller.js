@@ -16,6 +16,8 @@ export const sendReminder = serve(async (context) => {
 
     const renewalDate = dayjs(subscription.renewalDate); //get the renewal date from the subscription 
     if(renewalDate.isBefore(dayjs())) { //check if the renewal date is before today
+        Subscription.status = 'expired';
+        await subscription.save(); //save the subscription
         console.log('Subscription is already expired');
         return;
     }

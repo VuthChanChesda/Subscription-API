@@ -65,6 +65,12 @@ export const getUserSubscriptions = async (req, res, next) => {
 
         const subscriptions = await Subscription.find({ user: req.params.id })
             .populate("user", "name email") // Populate user details
+        if (subscriptions.length === 0) {
+            return res.status(404).json({
+                message: "No subscriptions found for this user",
+                success: false,
+            });
+        }
      
         res.status(200).json({
             message: "User subscriptions fetched successfully",
@@ -206,6 +212,85 @@ export const DeleteSubscription = async (req, res, next) => {
         res.status(200).json({
             message: "Subscription deleted successfully",
             success: true,
+        });
+    } catch (error) {
+        next(error);
+    }
+}
+
+export const cancelSubscription = async (req, res, next) => {
+    try {
+        // Find the subscription and ensure it belongs to the logged-in user
+        const subscription = await Subscription.findOne({
+            _id: req.params.id,
+            user: req.user._id, // Ensure the subscription belongs to the logged-in user
+        }).populate("user", "name email");
+        if (!subscription) {
+            return res.status(404).json({
+                message: "Subscription not found",
+                success: false,
+            });
+        }
+        if (subscription.status === 'cancelled') {
+            return res.status(400).json({
+                message: "Subscription is already cancelled",
+                success: false,
+            });
+        }
+        // Check if the subscription is already expired
+        if (subscription.status === 'expired') {
+            return res.status(400).json({
+                message: "Subscription is already expired",
+                success: false,
+            });
+        }
+        // Cancel the workflow if it exists
+        const workflowRunId = subscription.workflowRunId;
+        console.log("WorkflowRunId to cancel:", workflowRunId);
+
+        if (workflowRunId) {
+            await workflowClient.cancel({ids: workflowRunId});
+            console.log("Workflow cancelled with ID:", workflowRunId);
+        }
+
+        // Update the subscription status to 'cancelled'
+        subscription.status = 'cancelled';
+        await subscription.save();
+
+        res.status(200).json({
+            message: "Subscription cancelled successfully",
+            success: true,
+            data: subscription
+        });
+    } catch (error) {
+        next(error);
+    }
+}
+
+export const getUpcomingRenewals = async (req, res, next) => {
+    try {
+
+        const userId = req.user._id; 
+
+        const upcomingRenewals = await Subscription.find({
+            user: userId, // Only own user's subscriptions
+            renewalDate: { $gte: new Date() },
+            status: 'active'
+        })
+            .populate("user", "name email")
+            .sort({ renewalDate: 1 });
+
+        if (upcomingRenewals.length === 0) {
+            return res.status(404).json({
+                message: "No upcoming renewals found",
+                success: false,
+            });
+        }
+
+        res.status(200).json({
+            message: "Upcoming renewals fetched successfully",
+            success: true,
+            data: upcomingRenewals
         });
     } catch (error) {
         next(error);

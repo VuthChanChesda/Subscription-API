@@ -22,10 +22,6 @@ app.use('/api/v1/subscriptions', subscriptionRouter);
 app.use('/api/v1/workflows', workflowRoutes);
 
 
-app.get('/', (req, res) => {
-  res.send('Hello World!');
-});
-
 app.use(errorMiddleware);
 
 

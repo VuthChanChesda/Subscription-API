@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { getAllUsers , createUserByAdmin , getUser } from "../controllers/user.controller.js";
+import { getAllUsers , createUserByAdmin , getUser,UpdateUser , deleteUser } from "../controllers/user.controller.js";
 import { authorize } from "../middlewares/auth.middlewares.js";
 
 const Userrouter = Router();
@@ -9,12 +9,8 @@ Userrouter.get("/:id", authorize() ,getUser);
 
 Userrouter.post("/", authorize("admin"), createUserByAdmin);
 
-Userrouter.put("/:id", (req, res) => {
-    res.send( { title: "Update user profile page" } );
-});
+Userrouter.put("/:id", authorize() ,UpdateUser );
 
-Userrouter.delete("/:id", (req, res) => {
-    res.send( { title: "delete user profile page" } );
-});
+Userrouter.delete("/:id", authorize() ,deleteUser);
 
 export default Userrouter;
